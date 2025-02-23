@@ -33,7 +33,9 @@ public class Server {
                     break;
                 } else if (fromClient.startsWith("/reverse")) {
                     // another example of server-side command
-                    // Note: In the future command format processing
+                    // Note: In the future command format processing will be client-side
+                    // then client will send just the necessary data to the server so the server
+                    // doesn't need to do as much string processing
                     StringBuilder sb = new StringBuilder(fromClient.replace("/reverse ", ""));
                     sb.reverse();
                     String rev = sb.toString();
