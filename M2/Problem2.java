@@ -20,7 +20,7 @@ public class Problem2 extends BaseClass {
         // Step 3: Add code to solve the problem (add/commit as needed)
         double total = 0;
         // Start Solution Edits
-// UCID: mt85, Date: 9/29/2025
+// UCID: lap5, Date: 9/29/2025
 // Plan:
 // 1. Loop through the array and accumulate the sum into total
 // 2. Format the sum so it always shows 2 decimal places

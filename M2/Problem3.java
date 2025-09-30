@@ -17,7 +17,7 @@ public class Problem3 extends BaseClass {
         // Step 3: Add code to solve the problem (add/commit as needed)
         Object[] output = new Object[arr.length];
         // Start Solution Edits
-// UCID: mt85, Date: 9/29/2025
+// UCID: lap5, Date: 9/29/2025
 // Plan:
 // 1. Loop through each element of the array
 // 2. Detect its data type using instanceof
@@ -59,7 +59,7 @@ for (int i = 0; i < arr.length; i++) {
     }
 
     public static void main(String[] args) {
-        final String ucid = "mt85"; // <-- change to your UCID
+        final String ucid = "lap5"; // <-- change to your UCID
         // no edits below this line
         printHeader(ucid, 3);
         bePositive(array1, 1);
