@@ -1,10 +1,8 @@
 package M3;
 // UCID: lap5
 // Date: 2025-10-13
-// Task: Task #1 - CommandLineCalculator accepts two numbers and an operator (+ or -)
-
 public class CommandLineCalculator extends BaseClass {
-    private static String ucid = "lap5"; // <-- change to your ucid
+    private static String ucid = "lap5"; 
 
     public static void main(String[] args) {
         printHeader(ucid, 1, "Objective: Implement a calculator using command-line arguments.");
