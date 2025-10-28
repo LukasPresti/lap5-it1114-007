@@ -11,10 +11,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Demoing bi-directional communication between client and server in a
- * multi-client scenario
- */
 public class Client {
 
     private Socket server = null;
@@ -23,7 +19,7 @@ public class Client {
     final Pattern ipAddressPattern = Pattern
             .compile("/connect\\s+(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}:\\d{3,5})");
     final Pattern localhostPattern = Pattern.compile("/connect\\s+(localhost:\\d{3,5})");
-    private volatile boolean isRunning = true; // volatile for thread-safe visibility
+    private volatile boolean isRunning = true; 
 
     public Client() {
         System.out.println("Client Created");
@@ -33,10 +29,7 @@ public class Client {
         if (server == null) {
             return false;
         }
-        // https://stackoverflow.com/a/10241044
-        // Note: these check the client's end of the socket connect; therefore they
-        // don't really help determine if the server had a problem
-        // and is just for lesson's sake
+ 
         return server.isConnected() && !server.isClosed() && !server.isInputShutdown() && !server.isOutputShutdown();
     }
 
@@ -100,9 +93,6 @@ public class Client {
     private boolean processClientCommand(String text) throws IOException {
         boolean wasCommand = false;
         if (isConnection(text)) {
-            // replaces multiple spaces with a single space
-            // splits on the space after connect (gives us host and port)
-            // splits on : to get host as index 0 and port as index 1
             String[] parts = text.trim().replaceAll(" +", " ").split(" ")[1].split(":");
             connect(parts[0].trim(), Integer.parseInt(parts[1].trim()));
             wasCommand = true;
@@ -110,25 +100,46 @@ public class Client {
             close();
             wasCommand = true;
         } else if ("/disconnect".equalsIgnoreCase(text)) {
-            // index 0 = trigger, index 1 = command, index N = command data
             String[] commandData = { Constants.COMMAND_TRIGGER, "disconnect" };
             sendToServer(String.join(",", commandData));
             wasCommand = true;
         } else if (text.startsWith("/reverse")) {
             text = text.replace("/reverse", "").trim();
-            // index 0 = trigger, index 1 = command, index N = command data
             String[] commandData = { Constants.COMMAND_TRIGGER, "reverse", text };
             sendToServer(String.join(",", commandData));
             wasCommand = true;
         } else if ("/flip".equalsIgnoreCase(text)) {
-    // UCID: lap5 | Date: 10/21/2025
-    // Summary: Sends coin flip request to server
+            // UCID: lap5 | Date: 10/21/2025
+            // Summary: Sends coin flip request to server
             String[] commandData = { Constants.COMMAND_TRIGGER, "flip" };
             sendToServer(String.join(",", commandData));
             wasCommand = true;
+        } else if (text.startsWith("/pm ")) {
+            // UCID: lap5 | Date: 10/27/2025
+            // Summary: Sends private message command to server
+            String[] parts = text.split(" ", 3);
+            if (parts.length < 3) {
+                System.out.println("Usage: /pm <targetId> <message>");
+                wasCommand = true;
+                return wasCommand;
+            }
+            String targetId = parts[1];
+            String message = parts[2];
+            String[] commandData = { Constants.COMMAND_TRIGGER, "pm", targetId, message };
+            sendToServer(String.join(",", commandData));
+            wasCommand = true;
         }
+        // UCID: lap5 | Date: 10/27/2025
+        else if (text.startsWith("/shuffle")) {
+            text = text.replace("/shuffle", "").trim();
+            String[] commandData = { Constants.COMMAND_TRIGGER, "shuffle", text };
+            sendToServer(String.join(",", commandData));
+            wasCommand = true;
+    }
+
         return wasCommand;
     }
+
 
     public void start() throws IOException {
         System.out.println("Client starting");

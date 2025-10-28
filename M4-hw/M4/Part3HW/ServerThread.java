@@ -170,50 +170,68 @@ public class ServerThread extends Thread {
      * @return true if it was a command, false otherwise
      */
     private boolean processCommand(String message) {
-        boolean wasCommand = false; // control var to use as the return status
+    boolean wasCommand = false; // control var to use as the return status
 
-        // using "[cmd]" as a temporary trigger until we update how the data is passed
-        // over the socket
-        if (message.startsWith(Constants.COMMAND_TRIGGER)) {
-            // expected format will be csv for now to keep it simple
-            String[] commandData = message.split(",");
-            if (commandData.length >= 2) {
+    if (message.startsWith(Constants.COMMAND_TRIGGER)) {
+        // expected format will be csv for now to keep it simple
+        String[] commandData = message.split(",");
+        if (commandData.length >= 2) {
 
-                // index 0 is the trigger word
-                // index 1 is the command
-                final String command = commandData[1].trim();
-                System.out.println(TextFX.colorize("Checking command: " + command, Color.YELLOW));
-                // index N are the data from the command
-                // Note: not all commands require data, some are simply actions/triggers to
-                // process like quit
-                switch (command) {
-                    case "quit":
-                    case "disconnect":
-                    case "logout":
-                    case "logoff":
-                        server.handleDisconnect(this);
-                        wasCommand = true;
-                        break;
-                    case "reverse":
-                        // ignore the first two indexes (trigger, command)
-                        String relevantText = String.join(" ", Arrays.copyOfRange(commandData, 2, commandData.length));
-                        server.handleReverseText(this, relevantText);
-                        wasCommand = true;
-                        break;
-                    case "flip":
-                        server.handleCoinFlip(this);
-                        wasCommand = true;
-                        break;
+            final String command = commandData[1].trim();
+            System.out.println(TextFX.colorize("Checking command: " + command, Color.YELLOW));
 
-                    // added more cases/breaks as needed for other commands
-                    default:
-                        break;
-                }
-            }
+            switch (command) {
+                case "quit":
+                case "disconnect":
+                case "logout":
+                case "logoff":
+                    server.handleDisconnect(this);
+                    wasCommand = true;
+                    break;
 
+                case "reverse":
+                    String relevantText = String.join(" ", Arrays.copyOfRange(commandData, 2, commandData.length));
+                    server.handleReverseText(this, relevantText);
+                    wasCommand = true;
+                    break;
+
+                case "flip":
+                    server.handleCoinFlip(this);
+                    wasCommand = true;
+                    break;
+
+                case "pm":
+    // UCID: lap5 | Date: 10/27/2025
+    if (commandData.length >= 4) {
+        try {
+            long targetId = Long.parseLong(commandData[2].trim());
+            String pmMessage = commandData[3].trim();
+            server.handlePrivateMessage(this, targetId, pmMessage);
+        } catch (NumberFormatException e) {
+            // Use sendToClient (existing method) to notify this client of the error
+            sendToClient("Server: Invalid target ID for private message.");
         }
-        return wasCommand;
+    } else {
+        sendToClient("Server: Usage: /pm <id> <message>");
     }
+    wasCommand = true;
+    break;
+
+// UCID: lap5 | Date: 10/27/2025
+case "shuffle":
+    String shuffledText = String.join(" ", Arrays.copyOfRange(commandData, 2, commandData.length));
+    server.handleShuffle(this, shuffledText);
+    wasCommand = true;
+    break;
+
+                default:
+                    break;
+            }
+        }
+    }
+    return wasCommand;
+}
+
 
     private void cleanup() {
         info("ServerThread cleanup() start");

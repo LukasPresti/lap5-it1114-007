@@ -136,6 +136,38 @@ public class Server {
     protected synchronized void handleMessage(ServerThread sender, String text) {
         relay(sender, text);
     }
+
+    // UCID: lap5 | Date: 10/27/2025
+protected synchronized void handlePrivateMessage(ServerThread sender, long targetId, String message) {
+    ServerThread receiver = connectedClients.get(targetId);
+
+    if (receiver != null) {
+        String formatted = "PM from User[" + sender.getClientId() + "]: " + message;
+        // Send to sender
+        sender.sendToClient(formatted);
+        // Send to receiver
+        receiver.sendToClient(formatted);
+    } else {
+        sender.sendToClient("Server: User with ID " + targetId + " not found.");
+    }
+}
+
+// UCID: lap5 | Date: 10/27/2025
+protected synchronized void handleShuffle(ServerThread sender, String text) {
+    // Shuffle the characters in the message
+    char[] chars = text.toCharArray();
+    for (int i = 0; i < chars.length; i++) {
+        int randomIndex = (int)(Math.random() * chars.length);
+        char temp = chars[i];
+        chars[i] = chars[randomIndex];
+        chars[randomIndex] = temp;
+    }
+    String shuffled = new String(chars);
+
+    relay(sender, "Shuffled from User[" + sender.getClientId() + "]: " + shuffled);
+
+}
+
     // end handle actions
 
     public static void main(String[] args) {
