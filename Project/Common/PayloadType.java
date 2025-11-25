@@ -14,6 +14,9 @@ public enum PayloadType {
     ROOM_CREATE,
     ROOM_JOIN,
     ROOM_LEAVE,
+    SYNC_PAYLOAD,
+    READY,
+    PICK,
     REVERSE,
     MESSAGE // sender and message
 }

@@ -186,12 +186,36 @@ public enum Client {
                 // /leave)
                 sendRoomAction(text, RoomAction.LEAVE);
                 wasCommand = true;
+            } else if (text.equalsIgnoreCase("ready")) {
+                sendReady();
+                wasCommand = true;
+            } else if (text.startsWith("pick")) {
+                String choice = text.replace("pick", "").trim();
+                if (choice.isEmpty()) {
+                    System.out.println(TextFX.colorize("Usage: /pick <R|P|S>", Color.RED));
+                } else {
+                    sendPick(choice);
+                }
+                wasCommand = true;
             }
         }
         return wasCommand;
     }
 
     // Start Send*() methods
+
+    private void sendReady() throws IOException {
+        Payload payload = new Payload();
+        payload.setPayloadType(PayloadType.READY);
+        sendToServer(payload);
+    }
+
+    private void sendPick(String choice) throws IOException {
+        Payload payload = new Payload();
+        payload.setPayloadType(PayloadType.PICK);
+        payload.setMessage(choice);
+        sendToServer(payload);
+    }
 
     /**
      * Sends a room action to the server
@@ -348,6 +372,9 @@ public enum Client {
             case SYNC_CLIENT:
                 processRoomAction(payload);
                 break;
+            case SYNC_PAYLOAD:
+                processPointsPayload(payload);
+                break;
             default:
                 System.out.println(TextFX.colorize("Unhandled payload type", Color.YELLOW));
                 break;
@@ -356,6 +383,21 @@ public enum Client {
     }
 
     // Start process*() methods
+    private void processPointsPayload(Payload payload) {
+        if (payload instanceof Common.PointsPayload) {
+            Common.PointsPayload pointsPayload = (Common.PointsPayload) payload;
+            if (knownClients.containsKey(pointsPayload.getClientId())) {
+                knownClients.get(pointsPayload.getClientId()).setPoints(pointsPayload.getPoints());
+                // Update myUser if it's me
+                if (pointsPayload.getClientId() == myUser.getClientId()) {
+                    myUser.setPoints(pointsPayload.getPoints());
+                }
+                System.out.println(TextFX.colorize(String.format("Updated points for client %d: %d",
+                        pointsPayload.getClientId(), pointsPayload.getPoints()), Color.GREEN));
+            }
+        }
+    }
+
     private void processClientData(Payload payload) {
         if (myUser.getClientId() != Constants.DEFAULT_CLIENT_ID) {
             System.out.println(TextFX.colorize("Client ID already set, this shouldn't happen", Color.YELLOW));

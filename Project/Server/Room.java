@@ -13,6 +13,7 @@ import Exceptions.DuplicateRoomException;
 import Exceptions.RoomNotFoundException;
 import Common.TextFX;
 import Common.TextFX.Color;
+import Common.User;
 
 public class Room implements AutoCloseable {
     private final String name;// unique name of the Room
@@ -20,6 +21,11 @@ public class Room implements AutoCloseable {
     private final ConcurrentHashMap<Long, ServerThread> clientsInRoom = new ConcurrentHashMap<Long, ServerThread>();
 
     public final static String LOBBY = "lobby";
+
+    // Game Logic
+    private String gameState = Constants.GAME_STATE_LOBBY;
+    private long roundTime = Constants.ROUND_TIME_MS;
+    private java.util.Timer roundTimer;
 
     private void info(String message) {
         System.out.println(TextFX.colorize(String.format("Room[%s]: %s", name, message), Color.PURPLE));
@@ -264,6 +270,234 @@ public class Room implements AutoCloseable {
         sb.reverse();
         String rev = sb.toString();
         relay(sender, rev);
+    }
+
+    protected synchronized void handleReady(ServerThread sender) {
+        if (!gameState.equals(Constants.GAME_STATE_LOBBY) && !gameState.equals(Constants.GAME_STATE_GAME_OVER)) {
+            return; // Can only ready up in Lobby or Game Over
+        }
+        User user = sender.getUser();
+        user.setReady(!user.isReady());
+        relay(null, String.format("%s is %s", sender.getDisplayName(), user.isReady() ? "READY" : "NOT READY"));
+
+        checkStartGame();
+    }
+
+    private void checkStartGame() {
+        if (clientsInRoom.size() < 2)
+            return; // Need at least 2 players
+        boolean allReady = clientsInRoom.values().stream().map(ServerThread::getUser).allMatch(User::isReady);
+        if (allReady) {
+            startGame();
+        }
+    }
+
+    private void startGame() {
+        gameState = Constants.GAME_STATE_READY;
+        relay(null, "All players ready! Game starting...");
+        // Reset points and elimination
+        clientsInRoom.values().forEach(client -> {
+            client.getUser().setPoints(0);
+            client.getUser().setEliminated(false);
+            client.getUser().setCurrentChoice(null);
+        });
+        startRound();
+    }
+
+    private void startRound() {
+        gameState = Constants.GAME_STATE_CHOOSING;
+        relay(null, "Round Start! Pick your choice (R, P, S)!");
+        // Reset choices for active players
+        clientsInRoom.values().forEach(client -> {
+            if (!client.getUser().isEliminated()) {
+                client.getUser().setCurrentChoice(null);
+            }
+        });
+
+        // Start Timer
+        if (roundTimer != null) {
+            roundTimer.cancel();
+        }
+        roundTimer = new java.util.Timer();
+        roundTimer.schedule(new java.util.TimerTask() {
+            @Override
+            public void run() {
+                endRound();
+            }
+        }, roundTime);
+    }
+
+    private void endRound() {
+        // To be implemented
+        info("Round Ended by Timer");
+        // Need to handle thread safety if called from Timer
+        // Ideally, we should synchronize or use a specific method
+        processEndRound();
+    }
+
+    private synchronized void processEndRound() {
+        if (roundTimer != null) {
+            roundTimer.cancel();
+            roundTimer = null;
+        }
+        gameState = Constants.GAME_STATE_ROUND_END;
+        relay(null, "Round Ended! Processing results...");
+
+        // Eliminate non-pickers
+        clientsInRoom.values().forEach(client -> {
+            if (!client.getUser().isEliminated() && client.getUser().getCurrentChoice() == null) {
+                client.getUser().setEliminated(true);
+                relay(null, String.format("%s eliminated for not picking", client.getDisplayName()));
+            }
+        });
+
+        // Process Battles
+        java.util.List<ServerThread> activePlayers = clientsInRoom.values().stream()
+                .filter(c -> !c.getUser().isEliminated())
+                .collect(java.util.stream.Collectors.toList());
+
+        if (activePlayers.size() > 1) {
+            StringBuilder battleResults = new StringBuilder("Battle Results:\n");
+            java.util.Set<Long> eliminatedIds = new java.util.HashSet<>();
+
+            for (int i = 0; i < activePlayers.size(); i++) {
+                ServerThread p1 = activePlayers.get(i);
+                ServerThread p2 = activePlayers.get((i + 1) % activePlayers.size());
+
+                int result = calculateMatch(p1.getUser().getCurrentChoice(), p2.getUser().getCurrentChoice());
+
+                String p1Name = p1.getDisplayName();
+                String p2Name = p2.getDisplayName();
+                String p1Choice = p1.getUser().getCurrentChoice();
+                String p2Choice = p2.getUser().getCurrentChoice();
+
+                battleResults.append(String.format("%s (%s) vs %s (%s): ", p1Name, p1Choice, p2Name, p2Choice));
+
+                if (result == 1) { // P1 wins
+                    p1.getUser().setPoints(p1.getUser().getPoints() + 1);
+                    eliminatedIds.add(p2.getClientId()); // P2 lost defense
+                    battleResults.append(String.format("%s Wins!\n", p1Name));
+                } else if (result == -1) { // P2 wins
+                    p2.getUser().setPoints(p2.getUser().getPoints() + 1);
+                    eliminatedIds.add(p1.getClientId()); // P1 lost attack
+                    battleResults.append(String.format("%s Wins!\n", p2Name));
+                } else {
+                    battleResults.append("Tie!\n");
+                }
+            }
+
+            relay(null, battleResults.toString());
+
+            // Apply eliminations
+            activePlayers.forEach(p -> {
+                if (eliminatedIds.contains(p.getClientId())) {
+                    p.getUser().setEliminated(true);
+                    relay(null, String.format("%s eliminated", p.getDisplayName()));
+                }
+            });
+        }
+
+        // Sync Points
+        sendPoints();
+
+        // Check Win Condition
+        long activeCount = clientsInRoom.values().stream().filter(c -> !c.getUser().isEliminated()).count();
+        if (activeCount <= 1) {
+            endSession(activeCount == 1
+                    ? clientsInRoom.values().stream().filter(c -> !c.getUser().isEliminated()).findFirst().orElse(null)
+                    : null);
+        } else {
+            // Next Round
+            new java.util.Timer().schedule(new java.util.TimerTask() {
+                @Override
+                public void run() {
+                    startRound();
+                }
+            }, 5000); // 5 second delay before next round
+            relay(null, "Next round starts in 5 seconds...");
+        }
+    }
+
+    private int calculateMatch(String c1, String c2) {
+        if (c1.equalsIgnoreCase(c2))
+            return 0;
+        if (c1.equalsIgnoreCase(Constants.ROCK)) {
+            return c2.equalsIgnoreCase(Constants.SCISSORS) ? 1 : -1;
+        }
+        if (c1.equalsIgnoreCase(Constants.PAPER)) {
+            return c2.equalsIgnoreCase(Constants.ROCK) ? 1 : -1;
+        }
+        if (c1.equalsIgnoreCase(Constants.SCISSORS)) {
+            return c2.equalsIgnoreCase(Constants.PAPER) ? 1 : -1;
+        }
+        return 0;
+    }
+
+    private void sendPoints() {
+        clientsInRoom.values().forEach(client -> {
+            Common.PointsPayload payload = new Common.PointsPayload();
+            payload.setClientId(client.getClientId());
+            payload.setPoints(client.getUser().getPoints());
+            relayPayload(payload);
+        });
+    }
+
+    private void relayPayload(Common.Payload payload) {
+        clientsInRoom.values().forEach(client -> client.sendToClient(payload));
+    }
+
+    private void endSession(ServerThread winner) {
+        gameState = Constants.GAME_STATE_GAME_OVER;
+        if (winner != null) {
+            relay(null, String.format("Game Over! Winner: %s", winner.getDisplayName()));
+        } else {
+            relay(null, "Game Over! It's a Tie!");
+        }
+
+        // Scoreboard
+        StringBuilder sb = new StringBuilder("Final Scores:\n");
+        clientsInRoom.values().stream()
+                .sorted((c1, c2) -> Integer.compare(c2.getUser().getPoints(), c1.getUser().getPoints()))
+                .forEach(c -> sb.append(String.format("%s: %d\n", c.getDisplayName(), c.getUser().getPoints())));
+        relay(null, sb.toString());
+
+        // Reset
+        clientsInRoom.values().forEach(c -> c.getUser().setReady(false));
+        relay(null, "Session ended. Type /ready to start a new game.");
+    }
+
+    protected synchronized void handlePick(ServerThread sender, String choice) {
+        if (!gameState.equals(Constants.GAME_STATE_CHOOSING)) {
+            sender.sendMessage(Constants.DEFAULT_CLIENT_ID, "Not in choosing phase");
+            return;
+        }
+        if (sender.getUser().isEliminated()) {
+            sender.sendMessage(Constants.DEFAULT_CLIENT_ID, "You are eliminated");
+            return;
+        }
+        // Validate choice
+        if (!isValidChoice(choice)) {
+            sender.sendMessage(Constants.DEFAULT_CLIENT_ID, "Invalid choice. Use R, P, or S");
+            return;
+        }
+
+        sender.getUser().setCurrentChoice(choice);
+        relay(null, String.format("%s made a choice", sender.getDisplayName()));
+
+        // Check if all active players have picked
+        boolean allPicked = clientsInRoom.values().stream()
+                .filter(c -> !c.getUser().isEliminated())
+                .allMatch(c -> c.getUser().getCurrentChoice() != null);
+
+        if (allPicked) {
+            processEndRound();
+        }
+    }
+
+    private boolean isValidChoice(String choice) {
+        return Constants.ROCK.equalsIgnoreCase(choice) ||
+                Constants.PAPER.equalsIgnoreCase(choice) ||
+                Constants.SCISSORS.equalsIgnoreCase(choice);
     }
 
     protected synchronized void handleMessage(ServerThread sender, String text) {

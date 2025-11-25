@@ -164,6 +164,12 @@ public class ServerThread extends BaseServerThread {
             case ROOM_LEAVE:
                 currentRoom.handleJoinRoom(this, Room.LOBBY);
                 break;
+            case READY:
+                currentRoom.handleReady(this);
+                break;
+            case PICK:
+                currentRoom.handlePick(this, incoming.getMessage());
+                break;
             default:
                 System.out.println(TextFX.colorize("Unknown payload type received", Color.RED));
                 break;

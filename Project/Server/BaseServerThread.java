@@ -26,6 +26,10 @@ public abstract class BaseServerThread extends Thread {
     private User user = new User();
     protected Room currentRoom;
 
+    public User getUser() {
+        return this.user;
+    }
+
     /**
      * Returns the current Room associated with this ServerThread
      * 
