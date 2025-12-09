@@ -1,9 +1,4 @@
-/**
- * UCID: lap5
- * Date: 2025-11-23
- * Summary: Enum defining the various commands available to the client.
- */
-package Common;
+package Project.Common;
 
 import java.util.HashMap;
 
@@ -17,7 +12,14 @@ public enum Command {
     LEAVE_ROOM("leaveroom"),
     JOIN_ROOM("joinroom"),
     NAME("name"),
-    LIST_USERS("users");
+    LIST_USERS("users"),
+    LIST_ROOMS("listrooms"),
+    READY("ready"),
+    EXAMPLE_TURN("exampleturn"),
+    PICK("pick"),
+    STATS("stats"),
+    SETTINGS("settings"),
+    AWAY("away"),;
 
     private static final HashMap<String, Command> BY_COMMAND = new HashMap<>();
     static {

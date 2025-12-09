@@ -1,9 +1,4 @@
-/**
- * UCID: lap5
- * Date: 2025-11-23
- * Summary: Base class for data transfer between client and server.
- */
-package Common;
+package Project.Common;
 
 import java.io.Serializable;
 

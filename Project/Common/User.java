@@ -1,17 +1,25 @@
-/**
- * UCID: lap5
- * Date: 2025-11-23
- * Summary: Represents a user/client with an ID and name.
- */
-package Common;
+package Project.Common;
 
 public class User {
     private long clientId = Constants.DEFAULT_CLIENT_ID;
     private String clientName;
-    private int points = 0;
-    private String currentChoice = null;
-    private boolean isEliminated = false;
     private boolean isReady = false;
+    private boolean tookTurn = false;
+    private int points = 0;
+
+    /**
+     * @return the points
+     */
+    public int getPoints() {
+        return points;
+    }
+
+    /**
+     * @param points the points to set
+     */
+    public void setPoints(int points) {
+        this.points = points;
+    }
 
     /**
      * @return the clientId
@@ -35,38 +43,14 @@ public class User {
     }
 
     /**
-     * @param clientName the clientName to set
+     * @param username the username to set
      */
-    public void setClientName(String clientName) {
-        this.clientName = clientName;
+    public void setClientName(String username) {
+        this.clientName = username;
     }
 
     public String getDisplayName() {
-        return String.format("%s(%s)", clientName, clientId);
-    }
-
-    public int getPoints() {
-        return points;
-    }
-
-    public void setPoints(int points) {
-        this.points = points;
-    }
-
-    public String getCurrentChoice() {
-        return currentChoice;
-    }
-
-    public void setCurrentChoice(String currentChoice) {
-        this.currentChoice = currentChoice;
-    }
-
-    public boolean isEliminated() {
-        return isEliminated;
-    }
-
-    public void setEliminated(boolean isEliminated) {
-        this.isEliminated = isEliminated;
+        return String.format("%s#%s", this.clientName, this.clientId);
     }
 
     public boolean isReady() {
@@ -78,11 +62,64 @@ public class User {
     }
 
     public void reset() {
-        this.clientName = null;
         this.clientId = Constants.DEFAULT_CLIENT_ID;
-        this.points = 0;
-        this.currentChoice = null;
-        this.isEliminated = false;
+        this.clientName = null;
         this.isReady = false;
+        this.tookTurn = false;
+        this.points = 0;
+        this.choice = null;
+        this.isEliminated = false;
+    }
+
+    /**
+     * @return the tookTurn
+     */
+    public boolean didTakeTurn() {
+        return tookTurn;
+    }
+
+    /**
+     * @param tookTurn the tookTurn to set
+     */
+    public void setTookTurn(boolean tookTurn) {
+        this.tookTurn = tookTurn;
+    }
+
+    private String choice = null;
+    private boolean isEliminated = false;
+
+    public String getChoice() {
+        return choice;
+    }
+
+    public void setChoice(String choice) {
+        this.choice = choice;
+    }
+
+    public boolean isEliminated() {
+        return isEliminated;
+    }
+
+    public void setEliminated(boolean isEliminated) {
+        this.isEliminated = isEliminated;
+    }
+
+    private String lastChoice = null;
+    private boolean isAway = false;
+
+    public String getLastChoice() {
+        return lastChoice;
+    }
+
+    public void setLastChoice(String lastChoice) {
+        this.lastChoice = lastChoice;
+    }
+
+    public boolean isAway() {
+        return isAway;
+    }
+
+    public void setAway(boolean isAway) {
+        this.isAway = isAway;
     }
 }

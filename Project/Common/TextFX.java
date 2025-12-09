@@ -1,9 +1,4 @@
-/**
- * UCID: lap5
- * Date: 2025-11-23
- * Summary: Utility class for adding color to console output.
- */
-package Common;
+package Project.Common;
 
 /**
  * Utility to attempt to provide colored text in the terminal.

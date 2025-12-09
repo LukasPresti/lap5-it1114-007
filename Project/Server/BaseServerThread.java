@@ -1,18 +1,12 @@
-
-/**
- * UCID: lap5
- * Date: 2025-11-23
- * Summary: Abstract base class managing the raw socket connection, object streams, and basic thread lifecycle for a client connection.
- */
-package Server;
+package Project.Server;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
-import Common.Payload;
-import Common.User;
+import Project.Common.Payload;
+import Project.Common.User;
 
 /**
  * Base class the handles the underlying connection between Client and
@@ -23,12 +17,8 @@ public abstract class BaseServerThread extends Thread {
     protected boolean isRunning = false; // control variable to stop this thread
     protected ObjectOutputStream out; // exposed here for send()
     protected Socket client; // communication directly to "my" client
-    private User user = new User();
+    protected User user = new User();
     protected Room currentRoom;
-
-    public User getUser() {
-        return this.user;
-    }
 
     /**
      * Returns the current Room associated with this ServerThread
@@ -192,6 +182,10 @@ public abstract class BaseServerThread extends Thread {
                         break;
                     }
                     info("IO exception while reading from client");
+                    e.printStackTrace();
+                    break;
+                } catch (Exception e) {
+                    info("Unexpected exception while reading from client");
                     e.printStackTrace();
                     break;
                 }

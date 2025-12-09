@@ -1,9 +1,4 @@
-/**
- * UCID: lap5
- * Date: 2025-11-23
- * Summary: Payload subclass for handling connection-related data like client name.
- */
-package Common;
+package Project.Common;
 
 public class ConnectionPayload extends Payload {
     private String clientName;
@@ -20,6 +15,25 @@ public class ConnectionPayload extends Payload {
      */
     public void setClientName(String clientName) {
         this.clientName = clientName;
+    }
+
+    private boolean isAway;
+    private boolean isSpectator;
+
+    public boolean isAway() {
+        return isAway;
+    }
+
+    public void setAway(boolean isAway) {
+        this.isAway = isAway;
+    }
+
+    public boolean isSpectator() {
+        return isSpectator;
+    }
+
+    public void setSpectator(boolean isSpectator) {
+        this.isSpectator = isSpectator;
     }
 
     @Override
